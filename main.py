@@ -17,7 +17,11 @@ logging.basicConfig(
 def main():
     try:
         logging.info("Starting SMT login flow...")
-        main_win = login(line="C20", station="Monitor")
+        main_win = login(
+            line="C20",
+            station="Monitor",
+            exe_path=r"C:\Users\T4060033\OneDrive - quantacn.com\Desktop\MainMenu_QMB.exe",
+        )
         if main_win:
             logging.info("Login successful. Main window: %s", main_win.window_text())
         else:
