@@ -48,6 +48,11 @@ def load_config() -> dict:
         return dict(DEFAULT_CONFIG)
     merged = dict(DEFAULT_CONFIG)
     merged.update(data)
+    # If the stored exe_path no longer exists on disk, fall back to default
+    # so the user sees the suggested path in the dialog instead of a dead one.
+    import os
+    if merged.get("exe_path") and not os.path.isfile(merged["exe_path"]):
+        merged["exe_path"] = DEFAULT_CONFIG["exe_path"]
     return merged
 
 

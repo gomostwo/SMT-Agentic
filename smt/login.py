@@ -43,7 +43,17 @@ def launch_app(exe_path: str):
     # with subprocess.Popen (Application.start() would fail with error 1471
     # because the bootstrapper exits before the real GUI appears).
     logging.info("Launching app: %s", exe_path)
-    subprocess.Popen([exe_path], close_fds=True)
+    import os
+    if not os.path.isfile(exe_path):
+        raise RuntimeError(
+            f"EXE not found:\n  {exe_path}\n\n"
+            "Open the config dialog and use Browse… to pick the correct .exe.\n"
+            "The real app is usually at D:\\QMSApp\\MainMenu_CSharp\\Mainmenu.exe"
+        )
+    try:
+        subprocess.Popen([exe_path], close_fds=True)
+    except FileNotFoundError as e:
+        raise RuntimeError(f"Cannot launch {exe_path}: {e}") from e
 
 
 def _select_combo(win, auto_id: str, fallback_title: str, value: str):
