@@ -9,7 +9,7 @@ from pywinauto import Desktop
 APP_TITLE = "SMT Shop Floor Management System"
 CREDENTIAL_DIALOG_TITLE = "Login"
 RTMS_TITLE = "Real Time Monitor"
-LAUNCHER_TIMEOUT = 90   # MainMenu_QMB.exe downloads + extracts before SMT shows
+LAUNCHER_TIMEOUT = 30   # Mainmenu.exe starts directly, no download needed
 
 
 def find_window(title_re: str, timeout: int = 5):
@@ -42,7 +42,7 @@ def launch_app(exe_path: str):
     # to D:\QMSApp\MainMenu_CSharp and then launches it. We fire-and-forget
     # with subprocess.Popen (Application.start() would fail with error 1471
     # because the bootstrapper exits before the real GUI appears).
-    logging.info("Launching bootstrapper: %s", exe_path)
+    logging.info("Launching app: %s", exe_path)
     subprocess.Popen([exe_path], close_fds=True)
 
 

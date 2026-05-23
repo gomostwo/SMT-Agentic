@@ -12,7 +12,7 @@ except ImportError:
 KEYRING_SERVICE = "SMT_Agentic"
 
 DEFAULT_CONFIG = {
-    "exe_path": r"C:\Users\T4060033\OneDrive - quantacn.com\Desktop\MainMenu_QMB.exe",
+    "exe_path": r"D:\QMSApp\MainMenu_CSharp\Mainmenu.exe",
     "uid": "",
     "line": "C20",
     "station": "Monitor",
