@@ -1,8 +1,8 @@
 """Login flow for SMT Shop Floor Management System V3.4 PU9."""
 
-import os
+import subprocess
 import time
-from pywinauto import Application, Desktop
+from pywinauto import Desktop
 
 
 APP_TITLE = "SMT Shop Floor Management System"
@@ -20,9 +20,11 @@ def find_window(title_re: str, timeout: int = 5):
 
 
 def launch_app(exe_path: str):
-    app = Application(backend="uia").start(exe_path)
-    time.sleep(2)
-    return app
+    # Use subprocess so we don't call WaitForInputIdle — MainMenu_QMB.exe is a
+    # launcher that spawns a child process and exits, which causes pywinauto's
+    # Application.start() to raise error 1471 (WaitForInputIdle on non-GUI process).
+    subprocess.Popen([exe_path], close_fds=True)
+    time.sleep(3)
 
 
 def _select_combo(win, auto_id: str, fallback_title: str, value: str):
