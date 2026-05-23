@@ -1,5 +1,6 @@
 """Login flow for SMT Shop Floor Management System V3.4 PU9."""
 
+import logging
 import subprocess
 import time
 from pywinauto import Desktop
@@ -8,6 +9,7 @@ from pywinauto import Desktop
 APP_TITLE = "SMT Shop Floor Management System"
 CREDENTIAL_DIALOG_TITLE = "Login"
 RTMS_TITLE = "Real Time Monitor"
+LAUNCHER_TIMEOUT = 90   # MainMenu_QMB.exe downloads + extracts before SMT shows
 
 
 def find_window(title_re: str, timeout: int = 5):
@@ -19,12 +21,29 @@ def find_window(title_re: str, timeout: int = 5):
         return None
 
 
+def wait_for_window(title_re: str, timeout: int):
+    """Poll for a window every second until it appears or timeout expires."""
+    deadline = time.time() + timeout
+    last_log = 0.0
+    while time.time() < deadline:
+        win = find_window(title_re, timeout=1)
+        if win is not None:
+            return win
+        now = time.time()
+        if now - last_log >= 5:
+            remaining = int(deadline - now)
+            logging.info("  waiting for window '%s'... (%ds left)", title_re, remaining)
+            last_log = now
+    return None
+
+
 def launch_app(exe_path: str):
-    # Use subprocess so we don't call WaitForInputIdle — MainMenu_QMB.exe is a
-    # launcher that spawns a child process and exits, which causes pywinauto's
-    # Application.start() to raise error 1471 (WaitForInputIdle on non-GUI process).
+    # MainMenu_QMB.exe is a bootstrapper that downloads + extracts the real app
+    # to D:\QMSApp\MainMenu_CSharp and then launches it. We fire-and-forget
+    # with subprocess.Popen (Application.start() would fail with error 1471
+    # because the bootstrapper exits before the real GUI appears).
+    logging.info("Launching bootstrapper: %s", exe_path)
     subprocess.Popen([exe_path], close_fds=True)
-    time.sleep(3)
 
 
 def _select_combo(win, auto_id: str, fallback_title: str, value: str):
@@ -41,9 +60,13 @@ def step1_select_line_station(line: str, station: str, exe_path: str | None = No
         if not exe_path:
             raise RuntimeError("SMT window not found. Provide exe_path.")
         launch_app(exe_path)
-        win = find_window(f".*{APP_TITLE}.*", timeout=15)
+        win = wait_for_window(f".*{APP_TITLE}.*", timeout=LAUNCHER_TIMEOUT)
         if win is None:
-            raise RuntimeError("SMT window did not appear after launch.")
+            raise RuntimeError(
+                f"SMT window did not appear within {LAUNCHER_TIMEOUT}s. "
+                "The bootstrapper may still be downloading — try again, or "
+                "launch MainMenu_QMB.exe manually first and then run this tool."
+            )
 
     _select_combo(win, "cboLine", "Line", line)
     _select_combo(win, "cboStation", "Station", station)
