@@ -7,6 +7,7 @@ from pywinauto import Application, Desktop
 
 APP_TITLE = "SMT Shop Floor Management System"
 CREDENTIAL_DIALOG_TITLE = "Login"
+RTMS_TITLE = "Real Time Monitor"
 
 
 def find_window(title_re: str, timeout: int = 5):
@@ -31,21 +32,14 @@ def _select_combo(win, auto_id: str, fallback_title: str, value: str):
     ctrl.select(value)
 
 
-def step1_select_line_station(
-    line: str = "C20",
-    station: str = "Monitor",
-    exe_path: str | None = None,
-):
+def step1_select_line_station(line: str, station: str, exe_path: str | None = None):
     """Select Line/Station and click Login on the first SMT dialog."""
     win = find_window(f".*{APP_TITLE}.*")
-
     if win is None:
-        if exe_path is None:
-            raise RuntimeError(
-                "SMT window not found. Provide exe_path to launch the app."
-            )
+        if not exe_path:
+            raise RuntimeError("SMT window not found. Provide exe_path.")
         launch_app(exe_path)
-        win = find_window(f".*{APP_TITLE}.*", timeout=10)
+        win = find_window(f".*{APP_TITLE}.*", timeout=15)
         if win is None:
             raise RuntimeError("SMT window did not appear after launch.")
 
@@ -58,7 +52,7 @@ def step1_select_line_station(
 
 def step2_enter_credentials(uid: str, password: str):
     """Fill UID and Password in the credential dialog and click Login."""
-    cred_win = find_window(CREDENTIAL_DIALOG_TITLE, timeout=8)
+    cred_win = find_window(CREDENTIAL_DIALOG_TITLE, timeout=10)
     if cred_win is None:
         raise RuntimeError("Credential dialog did not appear.")
 
@@ -77,30 +71,25 @@ def step2_enter_credentials(uid: str, password: str):
 
 
 def login(
-    line: str = "C20",
-    station: str = "Monitor",
-    uid: str | None = None,
-    password: str | None = None,
+    line: str,
+    station: str,
+    uid: str,
+    password: str,
     exe_path: str | None = None,
 ):
     """
     Full login flow:
-      1. Select Line + Station → click Login
-      2. Enter UID + Password → click Login
-
-    Credentials are read from SMT_UID / SMT_PASSWORD env vars if not passed directly.
+      1. Select Line + Station -> click Login
+      2. Enter UID + Password -> click Login
+    Returns the RTMS main window handle.
     """
-    uid = uid or os.environ.get("SMT_UID")
-    password = password or os.environ.get("SMT_PASSWORD")
-
     if not uid or not password:
-        raise RuntimeError(
-            "UID and password are required. Pass them directly or set "
-            "SMT_UID and SMT_PASSWORD environment variables."
-        )
+        raise RuntimeError("UID and password are required.")
 
     step1_select_line_station(line=line, station=station, exe_path=exe_path)
     step2_enter_credentials(uid=uid, password=password)
 
-    main_win = find_window(f".*{APP_TITLE}.*", timeout=10)
+    main_win = find_window(f".*{RTMS_TITLE}.*", timeout=15)
+    if main_win is None:
+        main_win = find_window(f".*{APP_TITLE}.*", timeout=5)
     return main_win

@@ -1,12 +1,9 @@
-# PyInstaller spec — builds a portable no-console .exe
-# Run: pyinstaller smt_agent.spec
+# PyInstaller spec — builds a portable no-console smt_agent.exe
+# Build:   pyinstaller smt_agent.spec --clean
 
-import sys
 from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
 
 block_cipher = None
-
-# pywin32 ships DLLs that must be bundled explicitly
 binaries = collect_dynamic_libs("win32")
 
 a = Analysis(
@@ -15,19 +12,32 @@ a = Analysis(
     binaries=binaries,
     datas=collect_data_files("pywinauto"),
     hiddenimports=[
+        # pywinauto
         "pywinauto",
         "pywinauto.application",
         "pywinauto.controls",
         "pywinauto.controls.uia_controls",
         "pywinauto.uia_defines",
         "pywinauto.uia_element_info",
+        "pywinauto.keyboard",
+        # pywin32
         "win32api",
         "win32con",
         "win32gui",
         "win32process",
         "pywintypes",
+        # COM
         "comtypes",
         "comtypes.client",
+        # keyring (Windows Credential Manager backend)
+        "keyring",
+        "keyring.backends",
+        "keyring.backends.Windows",
+        # tkinter (config dialog)
+        "tkinter",
+        "tkinter.ttk",
+        "tkinter.filedialog",
+        "tkinter.messagebox",
     ],
     hookspath=[],
     hooksconfig={},
@@ -55,7 +65,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,      # no terminal window — runs silently in background
+    console=False,
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,

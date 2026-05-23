@@ -1,37 +1,69 @@
-"""Entry point for the SMT Agentic automation."""
+"""SMT Agentic — portable entry point.
+
+Shows a config dialog, then runs the full automation in a background thread.
+"""
 
 import sys
 import logging
+import threading
 from pathlib import Path
-from smt import login
 
-# Write log next to the .exe when running as bundled app
-log_dir = Path(sys.executable).parent if getattr(sys, "frozen", False) else Path(".")
+from ui.config_dialog import show_config_dialog
+from smt import runner
+
+
+def _log_path() -> Path:
+    base = Path(sys.executable).parent if getattr(sys, "frozen", False) else Path.cwd()
+    return base / "smt_agent.log"
+
+
 logging.basicConfig(
-    filename=str(log_dir / "smt_agent.log"),
+    filename=str(_log_path()),
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 
 
-def main():
-    try:
-        logging.info("Starting SMT login flow...")
-        main_win = login(
-            line="C20",
-            station="Monitor",
-            exe_path=r"C:\Users\T4060033\OneDrive - quantacn.com\Desktop\MainMenu_QMB.exe",
-        )
-        if main_win:
-            logging.info("Login successful. Main window: %s", main_win.window_text())
-        else:
-            logging.warning("Login completed but main window not detected.")
-    except Exception as exc:
-        logging.error("Login failed: %s", exc)
-        sys.exit(1)
+def main() -> int:
+    logging.info("=== SMT Agentic starting ===")
 
-    # Show me the next screen and I'll add more steps here!
+    selection = show_config_dialog()
+    if selection is None:
+        logging.info("User cancelled. Exit.")
+        return 0
+
+    params, password = selection
+    logging.info("Config OK. line=%s station=%s uid=%s",
+                 params["line"], params["station"], params["uid"])
+
+    error_holder: dict = {}
+
+    def worker():
+        try:
+            runner.run(params, password)
+        except Exception as exc:  # noqa: BLE001
+            logging.exception("Automation failed: %s", exc)
+            error_holder["error"] = str(exc)
+
+    thread = threading.Thread(target=worker, daemon=False)
+    thread.start()
+    thread.join()
+
+    if "error" in error_holder:
+        # Surface error via a final messagebox so the user knows it failed
+        try:
+            import tkinter as tk
+            from tkinter import messagebox
+            r = tk.Tk(); r.withdraw()
+            messagebox.showerror("SMT Agentic — Failed", error_holder["error"])
+            r.destroy()
+        except Exception:
+            pass
+        return 1
+
+    logging.info("=== SMT Agentic finished OK ===")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
